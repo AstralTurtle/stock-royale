@@ -228,7 +228,7 @@ wss.on("connection", (ws: WebSocket) => {
       return;
     }
 
-    let data: Request = message.data;
+    let data: Request = JSON.parse(message.data);
 
     const userDoc = await users.findOne({ uuid: data.uuid });
 
