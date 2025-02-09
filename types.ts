@@ -25,7 +25,6 @@ export interface Request {
 }
 
 export interface LoginRequest {
-  type: RequestType;
   uuid?: string;
 }
 
