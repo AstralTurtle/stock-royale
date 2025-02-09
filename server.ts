@@ -194,7 +194,8 @@ wss.on("connection", (ws: WebSocket) => {
     console.log(`Received: ${message.data}`);
 
     if (!client_authenticated) {
-      let data: LoginRequest = message.data;
+      let data: LoginRequest = JSON.parse(message.data);
+      console.log("d",data.uuid);
 
       const userDoc = await users.findOne({ uuid: data.uuid });
       if (!userDoc) {
