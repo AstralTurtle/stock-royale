@@ -54,6 +54,10 @@ export interface Response {
   message?: string;
 }
 
+export interface WinReponse{
+  
+}
+
 export enum StockType {
   Growth,
   Stable,
