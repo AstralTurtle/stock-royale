@@ -123,27 +123,76 @@ function preventPennyStock(stock: Stock): Stock {
   return stock;
 }
 
-// ----------------------------
-// Example Usage
-// ----------------------------
-/*
-// Create a sample stock
-const techStock = createStock("TechCo", {
-    type: 'growth',
-    basePrice: 100,
-    volatility: 0.03,
-    drift: 0.001
-});
+export function simulateStockBoom(
+  stock: Stock,
+  boomSeverity: number = 0.5,
+  boomDuration: number = 10
+): Stock {
+  // Validate boom severity (e.g., 0.5 = 50% rise)
+  boomSeverity = Math.min(Math.max(boomSeverity, 0), 2); // Clamp between 0% and 200%
 
-// Simulate 10 days
-let currentStock = techStock;
-for(let day = 1; day <= 10; day++) {
-    currentStock = updateStockDaily(currentStock);
-    console.log(`Day ${day}:`, currentStock.history[currentStock.history.length - 1]);
+  // Simulate boom over the specified duration (in days)
+  for (let day = 0; day < boomDuration; day++) {
+    // Increase volatility during the boom
+    const boomVolatility = stock.config.volatility * 1.5; // 1.5x volatility
+    const boomDrift = 0.03; // Positive drift (optimistic buying)
+
+    // Generate boom prices
+    const newPrices = modifyStockPrice(
+      stock.previousClose,
+      boomDrift,
+      boomVolatility
+    );
+
+    // Apply boom severity to the close price
+    newPrices.close *= 1 + boomSeverity / boomDuration;
+    newPrices.current = newPrices.close; // Assume current = close for simplicity
+
+    // Update stock
+    stock = {
+      ...stock,
+      previousClose: newPrices.close,
+      history: [...stock.history.slice(-29), newPrices],
+    };
+  }
+
+  return stock;
 }
 
-// Generate intraday prices
-const intradayPrices = generateStockPrices(100);
-intradayPrices.current = intradayPrices.low + Math.random() * (intradayPrices.high - intradayPrices.low);
-console.log("Intraday prices:", intradayPrices);
-*/
+export function simulateMarketCrash(
+  stocks: Stock[],
+  crashSeverity: number = 0.3,
+  crashDuration: number = 5
+): Stock[] {
+  // Validate crash severity (e.g., 0.3 = 30% drop)
+  crashSeverity = Math.min(Math.max(crashSeverity, 0), 1); // Clamp between 0% and 100%
+
+  // Simulate crash over the specified duration (in days)
+  for (let day = 0; day < crashDuration; day++) {
+    stocks = stocks.map((stock) => {
+      // Increase volatility during the crash
+      const crashVolatility = stock.config.volatility * 2; // Double volatility
+      const crashDrift = -0.05; // Negative drift (panic selling)
+
+      // Generate crash prices
+      const newPrices = modifyStockPrice(
+        stock.previousClose,
+        crashDrift,
+        crashVolatility
+      );
+
+      // Apply crash severity to the close price
+      newPrices.close *= 1 - crashSeverity / crashDuration;
+      newPrices.current = newPrices.close; // Assume current = close for simplicity
+
+      // Update stock
+      return {
+        ...stock,
+        previousClose: newPrices.close,
+        history: [...stock.history.slice(-29), newPrices],
+      };
+    });
+  }
+
+  return stocks;
+}

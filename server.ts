@@ -1,6 +1,11 @@
 import { createServer } from "http";
 import { client } from "./lib/database";
-import { createStock, updateStockDaily } from "./lib/market";
+import {
+  createStock,
+  simulateMarketCrash,
+  simulateStockBoom,
+  updateStockDaily,
+} from "./lib/market";
 import { WebSocketServer } from "ws";
 import { UUID } from "mongodb";
 import { generateUsername } from "unique-username-generator";
@@ -17,10 +22,12 @@ import {
   User,
   LoginRequest,
   LoginResponse,
+  News,
 } from "./types";
 
 const users = client.db("Users").collection("Users");
 let stocks: { [key: string]: Stock } = {};
+let news: Array<News> = [];
 
 const tickers = [
   "AAPL",
@@ -138,6 +145,27 @@ setInterval(() => {
   );
 }, 1000);
 
+setInterval(() => {
+  const random = Math.random();
+  if (random > 0.75) {
+    const index = Math.floor(Math.random() * Object.values(stocks).length);
+    const ticker = Object.keys(stocks)[index];
+    stocks[ticker] = simulateStockBoom(stocks[ticker]);
+    news.push({
+      headline: "ABSOLUTE CINEMA!",
+      stocks_affected: ticker,
+    });
+  } else if (random > 0.7) {
+    simulateMarketCrash(Object.values(stocks)).forEach((stock) => {
+      stocks[stock.name] = stock;
+    });
+    news.push({
+      headline: "We're cooked 💀💀💀",
+      stocks_affected: "All",
+    });
+  }
+}, 15000);
+
 // Create an HTTP server
 const server = createServer((req, res) => {
   res.writeHead(200, { "Content-Type": "text/plain" });
@@ -187,6 +215,8 @@ wss.on("connection", (ws: WebSocket) => {
     );
 
     ws.send(JSON.stringify({ stocks: updatedStocks }));
+
+    ws.send(JSON.stringify({ news: news }));
   }, 1000);
 
   ws.onmessage = async (message) => {
@@ -353,3 +383,6 @@ wss.on("connection", (ws: WebSocket) => {
 server.listen(8080, () => {
   console.log("Server is running on http://localhost:8080");
 });
+function simulateStockCrash(): { [key: string]: Stock } {
+  throw new Error("Function not implemented.");
+}

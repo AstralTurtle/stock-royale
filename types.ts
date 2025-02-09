@@ -6,6 +6,11 @@ export interface User {
   portfolio: Record<string, number>;
 }
 
+export interface News {
+  headline: string;
+  stocks_affected: string;
+}
+
 export interface Report {
   users: Array<User>;
   stocks: { [ticker: string]: Stock };
@@ -54,9 +59,7 @@ export interface Response {
   message?: string;
 }
 
-export interface WinReponse{
-  
-}
+export interface WinReponse {}
 
 export enum StockType {
   Growth,
