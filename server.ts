@@ -208,13 +208,21 @@ wss.on("connection", (ws: WebSocket) => {
         users.insertOne(user);
 
         console.log("Welcome, new user! uwu");
-        ws.send(JSON.stringify({ uuid: user.uuid }));
+        ws.send(JSON.stringify({ uuid: user.uuid, username: user.username }));
         client_authenticated = true;
         return;
       }
 
+      const user: User = {
+        uuid: userDoc.uuid!,
+        username: userDoc.username!,
+        wins: userDoc.wins!,
+        cash: userDoc.cash!,
+        portfolio: userDoc.portfolio!,
+      };
+
       console.log("I'VE PLAYED THESE GAMES BEFORE!");
-      ws.send(JSON.stringify({ uuid: data.uuid }));
+      ws.send(JSON.stringify({ uuid: data.uuid, username: user.username }));
       client_authenticated = true;
       return;
     }
