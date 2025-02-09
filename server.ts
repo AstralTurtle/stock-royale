@@ -398,6 +398,27 @@ wss.on("connection", (ws: WebSocket) => {
         stocks_affected: "Congrats!",
       });
 
+      tickers.forEach((name) => {
+        const random_type = Math.random() * 7;
+        let type;
+        if (random_type > 6) {
+          type = StockType.Volatile;
+        } else if (random_type > 4) {
+          type = StockType.Growth;
+        } else {
+          type = StockType.Stable;
+        }
+
+        const stock = createStock(name, {
+          basePrice: Math.random() * 500,
+          volatility: Math.random() * 0.25,
+          drift: Math.random() * 0.01,
+          type: type,
+        });
+
+        stocks[name] = stock;
+      });
+
       ws.send(
         JSON.stringify({
           username: user.username,
