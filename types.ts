@@ -78,8 +78,6 @@ export interface StockPrices {
 export interface Stock {
   name: string;
   previousClose: number;
-  historicalLow: number;
-  historicalHigh: number;
   history: StockPrices[];
   config: StockConfig;
 }

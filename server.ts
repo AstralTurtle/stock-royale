@@ -131,8 +131,8 @@ const tickers = [
 tickers.forEach((name) => {
   const stock = createStock(name, {
     basePrice: Math.random() * 500,
-    volatility: Math.random() * 0.5,
-    drift: Math.random() * 0.2,
+    volatility: Math.random() * 0.3,
+    drift: Math.random() * 0.02,
     type: Math.floor(Math.random() * 3),
   });
 
