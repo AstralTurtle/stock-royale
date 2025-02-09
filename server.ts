@@ -371,6 +371,8 @@ wss.on("connection", (ws: WebSocket) => {
       user.wins++;
       await users.findOneAndReplace({ uuid: user.uuid }, user);
 
+      await users.updateMany({}, { $set: { cash: 10000, portfolio: {} } });
+
       news.push({
         headline: user.username + " has won!",
         stocks_affected: "Congrats!",
