@@ -17,7 +17,6 @@ import {
   User,
 } from "./types";
 
-const users = client.db("Users").collection("Users");
 const stocks: { [key: string]: Stock } = {};
 const tickers = [
   "AAPL",
@@ -152,6 +151,13 @@ wss.on("connection", (ws: WebSocket) => {
   const users = client.db("Users").collection<User>("Users");
   users.insertOne(user);
 
+  ws.send(
+    JSON.stringify({
+      message: "This is your UUID, please don't lose it!",
+      uuid: user.uuid,
+    })
+  );
+
   setInterval(() => {
     Object.values(stocks).forEach((stock) => {
       return updateStockDaily(stock);
@@ -176,13 +182,6 @@ wss.on("connection", (ws: WebSocket) => {
         ws.send(JSON.stringify(body));
       });
   }, 1000);
-
-  ws.send(
-    JSON.stringify({
-      message: "This is your UUID, please don't lose it!",
-      uuid: user.uuid,
-    })
-  );
 
   ws.onmessage = (message) => {
     console.log(`Received: ${message}`);
