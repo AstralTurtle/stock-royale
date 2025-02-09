@@ -169,12 +169,21 @@ wss.on("connection", function (ws) {
                 return rest;
             });
             var body = {
-                stocks: stocks,
                 users: formattedUsers,
             };
             ws.send(JSON.stringify(body));
         });
-    }, 1000);
+    }, 500);
+    setInterval(function () {
+        var updatedStocks = Object.fromEntries(Object.entries(stocks).map(function (_a) {
+            var key = _a[0], stock = _a[1];
+            return [
+                key,
+                { name: stock.name, history: stock.history },
+            ];
+        }));
+        ws.send(JSON.stringify({ stocks: updatedStocks }));
+    }, 500);
     ws.onmessage = function (message) {
         console.log("Received: ".concat(message));
         var data = message.data;

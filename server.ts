@@ -186,7 +186,14 @@ wss.on("connection", (ws: WebSocket) => {
   }, 500);
 
   setInterval(() => {
-    ws.send(JSON.stringify({ stocks: stocks }));
+    const updatedStocks = Object.fromEntries(
+      Object.entries(stocks).map(([key, stock]) => [
+        key,
+        { name: stock.name, history: stock.history },
+      ])
+    );
+
+    ws.send(JSON.stringify({ stocks: updatedStocks }));
   }, 500);
 
   ws.onmessage = (message) => {

@@ -80,7 +80,7 @@ export function updateStockDaily(stock: Stock): Stock {
   let updatedStock = {
     ...stock,
     previousClose: newPrices.close,
-    history: [...stock.history.slice(-29), newPrices],
+    history: [...stock.history.slice(-7), newPrices],
   };
 
   updatedStock = applyStockSplits(updatedStock);
