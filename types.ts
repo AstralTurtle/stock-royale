@@ -9,8 +9,8 @@ export interface User {
 }
 
 export interface Report {
-  players: Array<User>;
-  stocks: Array<Stock>;
+  users: Array<User>;
+  stocks: { [ticker: string]: Stock };
 }
 
 export enum RequestType {

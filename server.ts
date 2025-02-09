@@ -1,8 +1,8 @@
 import { createServer } from "http";
 import { client } from "./lib/database";
-import { createStock } from "./lib/market";
+import { createStock, updateStockDaily } from "./lib/market";
 import { WebSocketServer } from "ws";
-import { UUID } from "mongodb";
+import { UUID, WithId } from "mongodb";
 import { generateUsername } from "unique-username-generator";
 import {
   Stock,
@@ -13,6 +13,7 @@ import {
   BuyRequest,
   ResponseType,
   SellRequest,
+  Report,
   User,
 } from "./types";
 
@@ -148,8 +149,33 @@ wss.on("connection", (ws: WebSocket) => {
     portfolio: {},
   };
 
-  const users = client.db("Users").collection("Users");
+  const users = client.db("Users").collection<User>("Users");
   users.insertOne(user);
+
+  setInterval(() => {
+    Object.values(stocks).forEach((stock) => {
+      return updateStockDaily(stock);
+    });
+
+    users
+      .find({})
+      .toArray()
+      .then((userDocs) => {
+        if (!userDocs) {
+          console.log("User not found");
+          return;
+        }
+
+        const formattedUsers: User[] = userDocs.map(({ _id, ...rest }) => rest);
+
+        const body: Report = {
+          stocks: stocks,
+          users: formattedUsers,
+        };
+
+        ws.send(JSON.stringify(body));
+      });
+  }, 1000);
 
   ws.send(
     JSON.stringify({
