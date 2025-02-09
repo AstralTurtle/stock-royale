@@ -1,7 +1,7 @@
 import { createServer } from "http";
 import { client } from "./lib/database";
 import { createStock, updateStockDaily } from "./lib/market";
-import { WebSocketServer } from "ws";
+import ws, { WebSocketServer } from "ws";
 import { UUID, WithId } from "mongodb";
 import { generateUsername } from "unique-username-generator";
 import {
@@ -17,6 +17,7 @@ import {
   User,
 } from "./types";
 
+const users = client.db("Users").collection<User>("Users");
 const stocks: { [key: string]: Stock } = {};
 const tickers = [
   "AAPL",
@@ -128,6 +129,12 @@ tickers.forEach((name) => {
   stocks[name] = stock;
 });
 
+setInterval(() => {
+  Object.values(stocks).forEach((stock) => {
+    return updateStockDaily(stock);
+  });
+}, 1000);
+
 // Create an HTTP server
 const server = createServer((req, res) => {
   res.writeHead(200, { "Content-Type": "text/plain" });
@@ -148,7 +155,6 @@ wss.on("connection", (ws: WebSocket) => {
     portfolio: {},
   };
 
-  const users = client.db("Users").collection<User>("Users");
   users.insertOne(user);
 
   ws.send(
@@ -159,10 +165,6 @@ wss.on("connection", (ws: WebSocket) => {
   );
 
   setInterval(() => {
-    Object.values(stocks).forEach((stock) => {
-      return updateStockDaily(stock);
-    });
-
     users
       .find({})
       .toArray()
