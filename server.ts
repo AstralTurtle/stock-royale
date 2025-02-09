@@ -280,6 +280,7 @@ wss.on("connection", (ws: WebSocket) => {
     }
 
     if (data.type == RequestType.Sell) {
+      console.log("Selling shares");
       const stockTicker = (data as SellRequest).stock;
       const stock = stocks[stockTicker];
       const stockCurrent = stock.history[stock.history.length - 1].current;
