@@ -195,7 +195,7 @@ wss.on("connection", (ws: WebSocket) => {
 
     if (!client_authenticated) {
       let data: LoginRequest = JSON.parse(message.data);
-      console.log("d",data.uuid);
+      console.log("d", data.uuid);
 
       const userDoc = await users.findOne({ uuid: data.uuid });
       if (!userDoc) {
@@ -249,7 +249,7 @@ wss.on("connection", (ws: WebSocket) => {
       portfolio: userDoc.portfolio!,
     };
 
-    if (data.type === RequestType.Buy) {
+    if (data.type == RequestType.Buy) {
       const stockTicker = (data as BuyRequest).stock;
       const stock = stocks[stockTicker];
       const stockCurrent = stock.history[stock.history.length - 1].current;
@@ -270,6 +270,8 @@ wss.on("connection", (ws: WebSocket) => {
         ? (user.portfolio[stockTicker] += stockShares)
         : (user.portfolio[stockTicker] = stockShares);
 
+      await users.findOneAndReplace({ uuid: user.uuid }, user);
+
       const response: Response = {
         type: ResponseType.Success,
         message: "You have purchased the shares.",
@@ -278,7 +280,7 @@ wss.on("connection", (ws: WebSocket) => {
       return;
     }
 
-    if (data.type === RequestType.Sell) {
+    if (data.type == RequestType.Sell) {
       const stockTicker = (data as SellRequest).stock;
       const stock = stocks[stockTicker];
       const stockCurrent = stock.history[stock.history.length - 1].current;
@@ -306,12 +308,35 @@ wss.on("connection", (ws: WebSocket) => {
       user.cash += totalGain;
       user.portfolio[stockTicker] -= stockShares;
 
+      await users.findOneAndReplace({ uuid: user.uuid }, user);
+
       const response: Response = {
         type: ResponseType.Success,
         message: "You have sold the shares.",
       };
       ws.send(JSON.stringify(response));
       return;
+    }
+
+    if (data.type == RequestType.Win) {
+      if (user.cash < 100000) {
+        const response: Response = {
+          type: ResponseType.Failure,
+          message: "You're way too poor there",
+        };
+        ws.send(JSON.stringify(response));
+        return;
+      }
+
+      user.wins++;
+      await users.findOneAndReplace({ uuid: user.uuid }, user);
+
+      ws.send(
+        JSON.stringify({
+          username: user.username,
+          wins: user.wins,
+        })
+      );
     }
   };
 
