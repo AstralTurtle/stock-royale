@@ -17,7 +17,7 @@ import {
   User,
 } from "./types";
 
-//const users = client.db("Users").collection<User>("Users");
+const users = client.db("Users").collection("Users");
 const usrs: Array<User> = [];
 let stocks: { [key: string]: Stock } = {};
 const tickers = [
@@ -156,8 +156,7 @@ wss.on("connection", (ws: WebSocket) => {
     portfolio: {},
   };
 
-  //users.insertOne(user);
-  usrs.push(user);
+  users.insertOne(user);
 
   ws.send(
     JSON.stringify({
@@ -166,7 +165,6 @@ wss.on("connection", (ws: WebSocket) => {
     })
   );
 
-  /*
   setInterval(() => {
     users
       .find({})
@@ -177,90 +175,24 @@ wss.on("connection", (ws: WebSocket) => {
           return;
         }
 
-        const formattedUsers: User[] = userDocs.map(({ _id, ...rest }) => rest);
+        const formattedUsers = userDocs.map(({ _id, ...rest }) => rest);
 
-        const body: Report = {
-          stocks: stocks,
+        const body = {
           users: formattedUsers,
         };
 
         ws.send(JSON.stringify(body));
       });
-  }, 1000);
-  */
+  }, 500);
 
   setInterval(() => {
-    const body: Report = {
-      stocks: stocks,
-      users: usrs,
-    };
-
-    ws.send(JSON.stringify(body));
-  }, 1000);
+    ws.send(JSON.stringify({ stocks: stocks }));
+  }, 500);
 
   ws.onmessage = (message) => {
     console.log(`Received: ${message}`);
-
     let data: Request = message.data;
-    usrs.forEach((user) => {
-      if (user.uuid != new UUID(data.uuid)) return;
 
-      if (data.type === RequestType.Buy) {
-        const stockTicker = (data as BuyRequest).stock;
-        const stock = stocks[stockTicker];
-        const stockCurrent = stock.history[stock.history.length - 1].current;
-        const stockShares = (data as BuyRequest).shares;
-        const totalPrice = stockCurrent * stockShares;
-
-        if (user.cash < totalPrice) {
-          const response: Response = {
-            type: ResponseType.Failure,
-            message: "You are broke.",
-          };
-          ws.send(JSON.stringify(response));
-          return;
-        }
-
-        user.cash -= totalPrice;
-        user.portfolio[stockTicker] += stockShares;
-
-        const response: Response = {
-          type: ResponseType.Success,
-          message: "You have purchased the shares.",
-        };
-        ws.send(JSON.stringify(response));
-        return;
-      }
-
-      if (data.type === RequestType.Sell) {
-        const stockTicker = (data as SellRequest).stock;
-        const stock = stocks[stockTicker];
-        const stockCurrent = stock.history[stock.history.length - 1].current;
-        const stockShares = (data as SellRequest).shares;
-        const totalGain = stockCurrent * stockShares;
-
-        if (user.portfolio[stockTicker] < stockShares) {
-          const response: Response = {
-            type: ResponseType.Failure,
-            message: "You don't own all those shares.",
-          };
-          ws.send(JSON.stringify(response));
-          return;
-        }
-
-        user.cash += totalGain;
-        user.portfolio[stockTicker] -= stockShares;
-
-        const response: Response = {
-          type: ResponseType.Success,
-          message: "You have sold the shares.",
-        };
-        ws.send(JSON.stringify(response));
-        return;
-      }
-    });
-
-    /*
     users.findOne({ uuid: new UUID(data.uuid) }).then((userDoc) => {
       if (!userDoc) {
         console.log("User not found");
@@ -329,7 +261,6 @@ wss.on("connection", (ws: WebSocket) => {
         return;
       }
     });
-    */
   };
 
   ws.onerror = () => {
