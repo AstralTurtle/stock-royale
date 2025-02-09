@@ -3,11 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "prepare": "npx next-ws-cli@latest patch"
+    "start": "tsc server.ts && node server.js"
   },
   "dependencies": {
     "express": "^4.21.2",
