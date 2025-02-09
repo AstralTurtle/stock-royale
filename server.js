@@ -127,6 +127,11 @@ tickers.forEach(function (name) {
     });
     stocks[name] = stock;
 });
+setInterval(function () {
+    Object.values(stocks).forEach(function (stock) {
+        return (0, market_1.updateStockDaily)(stock);
+    });
+}, 1000);
 // Create an HTTP server
 var server = (0, http_1.createServer)(function (req, res) {
     res.writeHead(200, { "Content-Type": "text/plain" });
@@ -143,12 +148,12 @@ wss.on("connection", function (ws) {
         cash: 10000,
         portfolio: {},
     };
-    var users = database_1.client.db("Users").collection("Users");
     users.insertOne(user);
+    ws.send(JSON.stringify({
+        message: "This is your UUID, please don't lose it!",
+        uuid: user.uuid,
+    }));
     setInterval(function () {
-        Object.values(stocks).forEach(function (stock) {
-            return (0, market_1.updateStockDaily)(stock);
-        });
         users
             .find({})
             .toArray()
@@ -168,10 +173,6 @@ wss.on("connection", function (ws) {
             ws.send(JSON.stringify(body));
         });
     }, 1000);
-    ws.send(JSON.stringify({
-        message: "This is your UUID, please don't lose it!",
-        uuid: user.uuid,
-    }));
     ws.onmessage = function (message) {
         console.log("Received: ".concat(message));
         var data = message.data;
@@ -234,6 +235,9 @@ wss.on("connection", function (ws) {
                 return;
             }
         });
+    };
+    ws.onerror = function () {
+        console.log("Client crash");
     };
     ws.onclose = function () {
         console.log("Client disconnected");
