@@ -290,6 +290,14 @@ wss.on("connection", (ws: WebSocket) => {
 
     if (data.type == RequestType.Buy) {
       const stockTicker = (data as BuyRequest).stock;
+      if (!stocks[stockTicker]) {
+        const response: Response = {
+          type: ResponseType.Failure,
+          message: "That stock doesn't exist.",
+        };
+        ws.send(JSON.stringify(response));
+        return;
+      }
       const stock = stocks[stockTicker];
       const stockCurrent = stock.history[stock.history.length - 1].current;
       const stockShares = (data as BuyRequest).shares;
