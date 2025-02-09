@@ -189,14 +189,14 @@ wss.on("connection", (ws: WebSocket) => {
       });
   }, 1000);
 
-  ws.onmessage = (message) => {
-    console.log(`Received: ${message}`);
+  ws.onmessage = async (message) => {
+    console.log(`Received: ${message.data}`);
 
     if (!client_authenticated) {
-      let newData: LoginRequest = message.data;
-      if (!newData.uuid) {
-        console.log("Welcome, new user! uwu");
+      let data: LoginRequest = message.data;
 
+      const userDoc = await users.findOne({ uuid: data.uuid });
+      if (!userDoc) {
         const user: User = {
           uuid: new UUID().toString(),
           username: generateUsername("-"),
@@ -204,115 +204,105 @@ wss.on("connection", (ws: WebSocket) => {
           cash: 10000,
           portfolio: {},
         };
-
         users.insertOne(user);
 
-        const response: LoginResponse = {
-          uuid: user.uuid,
-        };
-
-        ws.send(JSON.stringify(response));
+        console.log("Welcome, new user! uwu");
+        ws.send(JSON.stringify({ uuid: user.uuid }));
+        client_authenticated = true;
         return;
-      } else {
-        let oldData: LoginRequest = message.data;
-
-        console.log("I'VE PLAYED THESE GAMES BEFORE!");
-
-        const response: LoginResponse = {
-          uuid: oldData.uuid!,
-        };
-
-        ws.send(JSON.stringify(response));
       }
 
+      console.log("I'VE PLAYED THESE GAMES BEFORE!");
+      ws.send(JSON.stringify({ uuid: data.uuid }));
       client_authenticated = true;
+      return;
     }
 
     let data: Request = message.data;
 
-    users.findOne({ uuid: new UUID(data.uuid) }).then((userDoc) => {
-      if (!userDoc) {
+    const userDoc = await users.findOne({ uuid: data.uuid });
+
+    if (!userDoc) {
+      const response: Response = {
+        type: ResponseType.Failure,
+        message: "INTRUDER ALERT! WHO ARE YOU???",
+      };
+      ws.send(JSON.stringify(response));
+      return;
+    }
+
+    const user: User = {
+      uuid: userDoc.uuid!,
+      username: userDoc.username!,
+      wins: userDoc.wins!,
+      cash: userDoc.cash!,
+      portfolio: userDoc.portfolio!,
+    };
+
+    if (data.type === RequestType.Buy) {
+      const stockTicker = (data as BuyRequest).stock;
+      const stock = stocks[stockTicker];
+      const stockCurrent = stock.history[stock.history.length - 1].current;
+      const stockShares = (data as BuyRequest).shares;
+      const totalPrice = stockCurrent * stockShares;
+
+      if (user.cash < totalPrice) {
         const response: Response = {
           type: ResponseType.Failure,
-          message: "INTRUDER ALERT! WHO ARE YOU???",
+          message: "You are broke.",
         };
         ws.send(JSON.stringify(response));
         return;
       }
 
-      const user: User = {
-        uuid: userDoc.uuid!,
-        username: userDoc.username!,
-        wins: userDoc.wins!,
-        cash: userDoc.cash!,
-        portfolio: userDoc.portfolio!,
+      user.cash -= totalPrice;
+      user.portfolio[stockTicker]
+        ? (user.portfolio[stockTicker] += stockShares)
+        : (user.portfolio[stockTicker] = stockShares);
+
+      const response: Response = {
+        type: ResponseType.Success,
+        message: "You have purchased the shares.",
       };
+      ws.send(JSON.stringify(response));
+      return;
+    }
 
-      if (data.type === RequestType.Buy) {
-        const stockTicker = (data as BuyRequest).stock;
-        const stock = stocks[stockTicker];
-        const stockCurrent = stock.history[stock.history.length - 1].current;
-        const stockShares = (data as BuyRequest).shares;
-        const totalPrice = stockCurrent * stockShares;
+    if (data.type === RequestType.Sell) {
+      const stockTicker = (data as SellRequest).stock;
+      const stock = stocks[stockTicker];
+      const stockCurrent = stock.history[stock.history.length - 1].current;
+      const stockShares = (data as SellRequest).shares;
+      const totalGain = stockCurrent * stockShares;
 
-        if (user.cash < totalPrice) {
-          const response: Response = {
-            type: ResponseType.Failure,
-            message: "You are broke.",
-          };
-          ws.send(JSON.stringify(response));
-          return;
-        }
-
-        user.cash -= totalPrice;
-        user.portfolio[stockTicker]
-          ? (user.portfolio[stockTicker] += stockShares)
-          : (user.portfolio[stockTicker] = stockShares);
-
+      if (!user.portfolio[stockTicker]) {
         const response: Response = {
-          type: ResponseType.Success,
-          message: "You have purchased the shares.",
+          type: ResponseType.Failure,
+          message: "You don't own any shares blud.",
         };
         ws.send(JSON.stringify(response));
         return;
       }
 
-      if (data.type === RequestType.Sell) {
-        const stockTicker = (data as SellRequest).stock;
-        const stock = stocks[stockTicker];
-        const stockCurrent = stock.history[stock.history.length - 1].current;
-        const stockShares = (data as SellRequest).shares;
-        const totalGain = stockCurrent * stockShares;
-
-        if (!user.portfolio[stockTicker]) {
-          const response: Response = {
-            type: ResponseType.Failure,
-            message: "You don't own any shares blud.",
-          };
-          ws.send(JSON.stringify(response));
-          return;
-        }
-
-        if (user.portfolio[stockTicker] < stockShares) {
-          const response: Response = {
-            type: ResponseType.Failure,
-            message: "You don't own all those shares.",
-          };
-          ws.send(JSON.stringify(response));
-          return;
-        }
-
-        user.cash += totalGain;
-        user.portfolio[stockTicker] -= stockShares;
-
+      if (user.portfolio[stockTicker] < stockShares) {
         const response: Response = {
-          type: ResponseType.Success,
-          message: "You have sold the shares.",
+          type: ResponseType.Failure,
+          message: "You don't own all those shares.",
         };
         ws.send(JSON.stringify(response));
         return;
       }
-    });
+
+      user.cash += totalGain;
+      user.portfolio[stockTicker] -= stockShares;
+
+      const response: Response = {
+        type: ResponseType.Success,
+        message: "You have sold the shares.",
+      };
+      ws.send(JSON.stringify(response));
+      return;
+    }
   };
 
   ws.onerror = () => {
