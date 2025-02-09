@@ -216,7 +216,7 @@ wss.on("connection", (ws: WebSocket) => {
 
     ws.send(JSON.stringify({ stocks: updatedStocks }));
 
-    ws.send(JSON.stringify({ news: news }));
+    ws.send(JSON.stringify({ news: news.slice(-5) }));
   }, 1000);
 
   ws.onmessage = async (message) => {

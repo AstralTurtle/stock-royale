@@ -152,7 +152,7 @@ export function simulateStockBoom(
     stock = {
       ...stock,
       previousClose: newPrices.close,
-      history: [...stock.history.slice(-29), newPrices],
+      history: [...stock.history.slice(-7), newPrices],
     };
   }
 
@@ -189,7 +189,7 @@ export function simulateMarketCrash(
       return {
         ...stock,
         previousClose: newPrices.close,
-        history: [...stock.history.slice(-29), newPrices],
+        history: [...stock.history.slice(-7), newPrices],
       };
     });
   }
