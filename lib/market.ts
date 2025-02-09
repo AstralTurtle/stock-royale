@@ -1,4 +1,4 @@
-import { StockPrices, StockConfig, StockType, Stock } from "../types/Stock";
+import { StockPrices, StockConfig, StockType, Stock } from "../types";
 
 export function modifyStockPrice(
   previousClose: number,

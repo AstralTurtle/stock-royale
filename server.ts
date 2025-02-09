@@ -1,22 +1,121 @@
 import { createServer } from "http";
 import { client } from "./lib/database";
 import { createStock } from "./lib/market";
-import { Stock, StockType } from "./types/Stock";
-import tickers from "./stocks.json";
 import { WebSocketServer } from "ws";
-import { BuyRequest, Request, RequestType, SellRequest } from "./types/Request";
-import { Response, ResponseType } from "./types/Response";
 import { UUID } from "mongodb";
-import { User } from "./lib/user";
 import { generateUsername } from "unique-username-generator";
-
-if (!process.env.MONGODB_URI) {
-  throw new Error('Invalid/Missing environment variable: "MONGODB_URI"');
-}
+import {
+  Stock,
+  StockType,
+  Request,
+  RequestType,
+  Response,
+  BuyRequest,
+  ResponseType,
+  SellRequest,
+  User,
+} from "./types";
 
 const users = client.db("Users").collection("Users");
-
 const stocks: { [key: string]: Stock } = {};
+const tickers = [
+  "AAPL",
+  "NVDA",
+  "MSFT",
+  "AMZN",
+  "GOOGL",
+  "META",
+  "TSLA",
+  "TSM",
+  "AVGO",
+  "BRK.A",
+  "LLY",
+  "V",
+  "JNJ",
+  "UNH",
+  "JPM",
+  "XOM",
+  "MA",
+  "PG",
+  "NVO",
+  "ORCL",
+  "HD",
+  "CVX",
+  "MRK",
+  "ASML",
+  "KO",
+  "PEP",
+  "ABBV",
+  "COST",
+  "BAC",
+  "ADBE",
+  "TM",
+  "MCD",
+  "BABA",
+  "CSCO",
+  "BHP",
+  "NVS",
+  "CRM",
+  "AZN",
+  "PFE",
+  "OR",
+  "PM",
+  "ABT",
+  "MC",
+  "DHR",
+  "TXN",
+  "UNP",
+  "HSBC",
+  "ACN",
+  "GE",
+  "INTC",
+  "BKNG",
+  "C",
+  "IBM",
+  "PRX",
+  "BP",
+  "UL",
+  "T",
+  "WMT",
+  "SHEL",
+  "601288.SS",
+  "601939.SS",
+  "601398.SS",
+  "601857.SS",
+  "RELIANCE.NS",
+  "NESN.SW",
+  "ROG.SW",
+  "TTE",
+  "1288.HK",
+  "0941.HK",
+  "2318.HK",
+  "600519.SS",
+  "600036.SS",
+  "3690.HK",
+  "JD",
+  "PDD",
+  "NPN.JO",
+  "DGE.L",
+  "CBA.AX",
+  "BP.L",
+  "SAN.PA",
+  "GSK.L",
+  "VOW3.DE",
+  "SIE.DE",
+  "SAP.DE",
+  "PRX.AS",
+  "OR.PA",
+  "AZN.L",
+  "ULVR.L",
+  "HSBA.L",
+  "BP.L",
+  "DGE.L",
+  "GSK.L",
+  "SAN.PA",
+  "VOW3.DE",
+  "SIE.DE",
+  "SAP.DE",
+];
 
 tickers.forEach((name) => {
   const stock = createStock(name, {
