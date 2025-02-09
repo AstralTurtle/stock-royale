@@ -151,43 +151,42 @@ wss.on("connection", (ws: WebSocket) => {
   console.log("Client connected");
   let client_authenticated = false;
 
-  setInterval(() => {
-    users
-      .find({})
-      .toArray()
-      .then((userDocs) => {
-        if (!userDocs) {
-          return;
-        }
+  setInterval(async () => {
+    const usersDocs = await users.find({}).toArray();
 
-        const updatedUsers = (
-          userDocs.map(({ _id, ...rest }) => rest) as Array<User>
-        ).map((user) => {
-          let net_worth = user.cash;
-          Object.keys(user.portfolio).forEach((ticker) => {
-            net_worth += user.portfolio[ticker];
-          });
+    if (!usersDocs) {
+      return;
+    }
 
-          return {
-            username: user.username,
-            wins: user.wins,
-            cash: user.cash,
-            portfolio: user.portfolio,
-            net_worth: net_worth,
-          };
-        });
-
-        ws.send(JSON.stringify({ users: updatedUsers }));
-
-        const updatedStocks = Object.fromEntries(
-          Object.entries(stocks).map(([key, stock]) => [
-            key,
-            { name: stock.name, history: stock.history },
-          ])
-        );
-
-        ws.send(JSON.stringify({ stocks: updatedStocks }));
+    const updatedUsers = (
+      usersDocs.map(({ _id, ...rest }) => rest) as Array<User>
+    ).map((user) => {
+      let net_worth = user.cash;
+      Object.keys(user.portfolio).forEach((ticker) => {
+        net_worth +=
+          user.portfolio[ticker] *
+          stocks[ticker].history[stocks[ticker].history.length - 1].current;
       });
+
+      return {
+        username: user.username,
+        wins: user.wins,
+        cash: user.cash,
+        portfolio: user.portfolio,
+        net_worth: net_worth,
+      };
+    });
+
+    ws.send(JSON.stringify({ users: updatedUsers }));
+
+    const updatedStocks = Object.fromEntries(
+      Object.entries(stocks).map(([key, stock]) => [
+        key,
+        { name: stock.name, history: stock.history },
+      ])
+    );
+
+    ws.send(JSON.stringify({ stocks: updatedStocks }));
   }, 1000);
 
   ws.onmessage = async (message) => {
