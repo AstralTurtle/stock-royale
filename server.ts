@@ -17,9 +17,9 @@ import {
   User,
 } from "./types";
 
-const users = client.db("Users").collection<User>("Users");
+//const users = client.db("Users").collection<User>("Users");
 const usrs: Array<User> = [];
-const stocks: { [key: string]: Stock } = {};
+let stocks: { [key: string]: Stock } = {};
 const tickers = [
   "AAPL",
   "NVDA",
@@ -131,9 +131,9 @@ tickers.forEach((name) => {
 });
 
 setInterval(() => {
-  Object.values(stocks).forEach((stock) => {
-    return updateStockDaily(stock);
-  });
+  stocks = Object.fromEntries(
+    Object.entries(stocks).map(([key, stock]) => [key, updateStockDaily(stock)])
+  );
 }, 1000);
 
 // Create an HTTP server
@@ -156,7 +156,7 @@ wss.on("connection", (ws: WebSocket) => {
     portfolio: {},
   };
 
-  users.insertOne(user);
+  //users.insertOne(user);
   usrs.push(user);
 
   ws.send(
