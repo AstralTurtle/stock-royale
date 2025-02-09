@@ -371,6 +371,11 @@ wss.on("connection", (ws: WebSocket) => {
       user.wins++;
       await users.findOneAndReplace({ uuid: user.uuid }, user);
 
+      news.push({
+        headline: user.username + " has won!",
+        stocks_affected: "Congrats!",
+      });
+
       ws.send(
         JSON.stringify({
           username: user.username,
