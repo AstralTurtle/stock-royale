@@ -6,6 +6,7 @@ var RequestType;
     RequestType[RequestType["Buy"] = 0] = "Buy";
     RequestType[RequestType["Sell"] = 1] = "Sell";
     RequestType[RequestType["Win"] = 2] = "Win";
+    RequestType[RequestType["Login"] = 3] = "Login";
 })(RequestType || (exports.RequestType = RequestType = {}));
 var ResponseType;
 (function (ResponseType) {

@@ -19,7 +19,6 @@ var mongodb_1 = require("mongodb");
 var unique_username_generator_1 = require("unique-username-generator");
 var types_1 = require("./types");
 var users = database_1.client.db("Users").collection("Users");
-var usrs = [];
 var stocks = {};
 var tickers = [
     "AAPL",
@@ -143,53 +142,79 @@ var server = (0, http_1.createServer)(function (req, res) {
 var wss = new ws_1.WebSocketServer({ server: server });
 wss.on("connection", function (ws) {
     console.log("Client connected");
-    var user = {
-        uuid: new mongodb_1.UUID(),
-        username: (0, unique_username_generator_1.generateUsername)("-"),
-        wins: 0,
-        cash: 10000,
-        portfolio: {},
-    };
-    users.insertOne(user);
-    ws.send(JSON.stringify({
-        message: "This is your UUID, please don't lose it!",
-        uuid: user.uuid,
-    }));
+    var client_authenticated = false;
     setInterval(function () {
         users
             .find({})
             .toArray()
             .then(function (userDocs) {
             if (!userDocs) {
-                console.log("User not found");
                 return;
             }
-            var formattedUsers = userDocs.map(function (_a) {
+            var updatedUsers = userDocs.map(function (_a) {
                 var _id = _a._id, rest = __rest(_a, ["_id"]);
                 return rest;
+            }).map(function (user) {
+                var net_worth = user.cash;
+                Object.keys(user.portfolio).forEach(function (ticker) {
+                    net_worth += user.portfolio[ticker];
+                });
+                return {
+                    username: user.username,
+                    cash: user.cash,
+                    portfolio: user.portfolio,
+                    net_worth: net_worth,
+                };
             });
-            var body = {
-                users: formattedUsers,
-            };
-            ws.send(JSON.stringify(body));
+            ws.send(JSON.stringify({ users: updatedUsers }));
+            var updatedStocks = Object.fromEntries(Object.entries(stocks).map(function (_a) {
+                var key = _a[0], stock = _a[1];
+                return [
+                    key,
+                    { name: stock.name, history: stock.history },
+                ];
+            }));
+            ws.send(JSON.stringify({ stocks: updatedStocks }));
         });
-    }, 500);
-    setInterval(function () {
-        var updatedStocks = Object.fromEntries(Object.entries(stocks).map(function (_a) {
-            var key = _a[0], stock = _a[1];
-            return [
-                key,
-                { name: stock.name, history: stock.history },
-            ];
-        }));
-        ws.send(JSON.stringify({ stocks: updatedStocks }));
-    }, 500);
+    }, 1000);
     ws.onmessage = function (message) {
         console.log("Received: ".concat(message));
+        if (!client_authenticated) {
+            var newData = message.data;
+            if (!newData.uuid) {
+                console.log("Welcome, new user! uwu");
+                var user = {
+                    uuid: new mongodb_1.UUID().toString(),
+                    username: (0, unique_username_generator_1.generateUsername)("-"),
+                    wins: 0,
+                    cash: 10000,
+                    portfolio: {},
+                };
+                users.insertOne(user);
+                var response = {
+                    uuid: user.uuid,
+                };
+                ws.send(JSON.stringify(response));
+                return;
+            }
+            else {
+                var oldData = message.data;
+                console.log("I'VE PLAYED THESE GAMES BEFORE!");
+                var response = {
+                    uuid: oldData.uuid,
+                };
+                ws.send(JSON.stringify(response));
+            }
+            client_authenticated = true;
+        }
         var data = message.data;
         users.findOne({ uuid: new mongodb_1.UUID(data.uuid) }).then(function (userDoc) {
             if (!userDoc) {
-                console.log("User not found");
+                var response = {
+                    type: types_1.ResponseType.Failure,
+                    message: "INTRUDER ALERT! WHO ARE YOU???",
+                };
+                ws.send(JSON.stringify(response));
                 return;
             }
             var user = {
@@ -214,7 +239,9 @@ wss.on("connection", function (ws) {
                     return;
                 }
                 user.cash -= totalPrice;
-                user.portfolio[stockTicker] += stockShares;
+                user.portfolio[stockTicker]
+                    ? (user.portfolio[stockTicker] += stockShares)
+                    : (user.portfolio[stockTicker] = stockShares);
                 var response = {
                     type: types_1.ResponseType.Success,
                     message: "You have purchased the shares.",
@@ -228,12 +255,20 @@ wss.on("connection", function (ws) {
                 var stockCurrent = stock.history[stock.history.length - 1].current;
                 var stockShares = data.shares;
                 var totalGain = stockCurrent * stockShares;
-                if (user.portfolio[stockTicker] < stockShares) {
+                if (!user.portfolio[stockTicker]) {
                     var response_2 = {
+                        type: types_1.ResponseType.Failure,
+                        message: "You don't own any shares blud.",
+                    };
+                    ws.send(JSON.stringify(response_2));
+                    return;
+                }
+                if (user.portfolio[stockTicker] < stockShares) {
+                    var response_3 = {
                         type: types_1.ResponseType.Failure,
                         message: "You don't own all those shares.",
                     };
-                    ws.send(JSON.stringify(response_2));
+                    ws.send(JSON.stringify(response_3));
                     return;
                 }
                 user.cash += totalGain;

@@ -15,11 +15,13 @@ import {
   SellRequest,
   Report,
   User,
+  LoginRequest,
+  LoginResponse,
 } from "./types";
 
 const users = client.db("Users").collection("Users");
-const usrs: Array<User> = [];
 let stocks: { [key: string]: Stock } = {};
+
 const tickers = [
   "AAPL",
   "NVDA",
@@ -147,23 +149,7 @@ const wss = new WebSocketServer({ server });
 
 wss.on("connection", (ws: WebSocket) => {
   console.log("Client connected");
-
-  const user: User = {
-    uuid: new UUID(),
-    username: generateUsername("-"),
-    wins: 0,
-    cash: 10000,
-    portfolio: {},
-  };
-
-  users.insertOne(user);
-
-  ws.send(
-    JSON.stringify({
-      message: "This is your UUID, please don't lose it!",
-      uuid: user.uuid,
-    })
-  );
+  let client_authenticated = false;
 
   setInterval(() => {
     users
@@ -171,38 +157,86 @@ wss.on("connection", (ws: WebSocket) => {
       .toArray()
       .then((userDocs) => {
         if (!userDocs) {
-          console.log("User not found");
           return;
         }
 
-        const formattedUsers = userDocs.map(({ _id, ...rest }) => rest);
+        const updatedUsers = (
+          userDocs.map(({ _id, ...rest }) => rest) as Array<User>
+        ).map((user) => {
+          let net_worth = user.cash;
+          Object.keys(user.portfolio).forEach((ticker) => {
+            net_worth += user.portfolio[ticker];
+          });
 
-        const body = {
-          users: formattedUsers,
-        };
+          return {
+            username: user.username,
+            cash: user.cash,
+            portfolio: user.portfolio,
+            net_worth: net_worth,
+          };
+        });
 
-        ws.send(JSON.stringify(body));
+        ws.send(JSON.stringify({ users: updatedUsers }));
+
+        const updatedStocks = Object.fromEntries(
+          Object.entries(stocks).map(([key, stock]) => [
+            key,
+            { name: stock.name, history: stock.history },
+          ])
+        );
+
+        ws.send(JSON.stringify({ stocks: updatedStocks }));
       });
-  }, 500);
-
-  setInterval(() => {
-    const updatedStocks = Object.fromEntries(
-      Object.entries(stocks).map(([key, stock]) => [
-        key,
-        { name: stock.name, history: stock.history },
-      ])
-    );
-
-    ws.send(JSON.stringify({ stocks: updatedStocks }));
-  }, 500);
+  }, 1000);
 
   ws.onmessage = (message) => {
     console.log(`Received: ${message}`);
+
+    if (!client_authenticated) {
+      let newData: LoginRequest = message.data;
+      if (!newData.uuid) {
+        console.log("Welcome, new user! uwu");
+
+        const user: User = {
+          uuid: new UUID().toString(),
+          username: generateUsername("-"),
+          wins: 0,
+          cash: 10000,
+          portfolio: {},
+        };
+
+        users.insertOne(user);
+
+        const response: LoginResponse = {
+          uuid: user.uuid,
+        };
+
+        ws.send(JSON.stringify(response));
+        return;
+      } else {
+        let oldData: LoginRequest = message.data;
+
+        console.log("I'VE PLAYED THESE GAMES BEFORE!");
+
+        const response: LoginResponse = {
+          uuid: oldData.uuid!,
+        };
+
+        ws.send(JSON.stringify(response));
+      }
+
+      client_authenticated = true;
+    }
+
     let data: Request = message.data;
 
     users.findOne({ uuid: new UUID(data.uuid) }).then((userDoc) => {
       if (!userDoc) {
-        console.log("User not found");
+        const response: Response = {
+          type: ResponseType.Failure,
+          message: "INTRUDER ALERT! WHO ARE YOU???",
+        };
+        ws.send(JSON.stringify(response));
         return;
       }
 
@@ -231,7 +265,9 @@ wss.on("connection", (ws: WebSocket) => {
         }
 
         user.cash -= totalPrice;
-        user.portfolio[stockTicker] += stockShares;
+        user.portfolio[stockTicker]
+          ? (user.portfolio[stockTicker] += stockShares)
+          : (user.portfolio[stockTicker] = stockShares);
 
         const response: Response = {
           type: ResponseType.Success,
@@ -247,6 +283,15 @@ wss.on("connection", (ws: WebSocket) => {
         const stockCurrent = stock.history[stock.history.length - 1].current;
         const stockShares = (data as SellRequest).shares;
         const totalGain = stockCurrent * stockShares;
+
+        if (!user.portfolio[stockTicker]) {
+          const response: Response = {
+            type: ResponseType.Failure,
+            message: "You don't own any shares blud.",
+          };
+          ws.send(JSON.stringify(response));
+          return;
+        }
 
         if (user.portfolio[stockTicker] < stockShares) {
           const response: Response = {

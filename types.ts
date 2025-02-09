@@ -1,7 +1,5 @@
-import { UUID } from "mongodb";
-
 export interface User {
-  uuid: UUID;
+  uuid: string;
   username: string;
   wins: number;
   cash: number;
@@ -17,12 +15,18 @@ export enum RequestType {
   Buy,
   Sell,
   Win,
+  Login,
 }
 
 export interface Request {
   type: RequestType;
-  uuid: UUID;
+  uuid: string;
   message?: string;
+}
+
+export interface LoginRequest {
+  type: RequestType;
+  uuid?: string;
 }
 
 export interface BuyRequest extends Request {
@@ -40,6 +44,10 @@ export interface WinRequest extends Request {}
 export enum ResponseType {
   Success,
   Failure,
+}
+
+export interface LoginResponse {
+  uuid: string;
 }
 
 export interface Response {
