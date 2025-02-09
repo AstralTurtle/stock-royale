@@ -170,6 +170,7 @@ wss.on("connection", (ws: WebSocket) => {
 
           return {
             username: user.username,
+            wins: user.wins,
             cash: user.cash,
             portfolio: user.portfolio,
             net_worth: net_worth,
