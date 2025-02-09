@@ -228,7 +228,9 @@ wss.on("connection", (ws: WebSocket) => {
       return;
     }
 
-    let data: Request = message.data;
+    let data: Request = JSON.parse(message.data);
+    console.log('d',data);
+    console.log('b', data.type == RequestType.Buy);
 
     const userDoc = await users.findOne({ uuid: data.uuid });
 
@@ -249,7 +251,8 @@ wss.on("connection", (ws: WebSocket) => {
       portfolio: userDoc.portfolio!,
     };
 
-    if (data.type === RequestType.Buy) {
+    if (data.type == RequestType.Buy) {
+      console.log('buying')
       const stockTicker = (data as BuyRequest).stock;
       const stock = stocks[stockTicker];
       const stockCurrent = stock.history[stock.history.length - 1].current;
@@ -278,7 +281,8 @@ wss.on("connection", (ws: WebSocket) => {
       return;
     }
 
-    if (data.type === RequestType.Sell) {
+    if (data.type == RequestType.Sell) {
+      console.log('selling')
       const stockTicker = (data as SellRequest).stock;
       const stock = stocks[stockTicker];
       const stockCurrent = stock.history[stock.history.length - 1].current;
