@@ -1,9 +1,9 @@
-import { MongoDB } from "../../../lib/database";
+import { client } from "../../../lib/database";
 import tickers from "../../../stocks.json";
 import { createStock, Stock, StockType } from "../../../lib/market";
 
 export async function GET() {
-  const market = MongoDB.db("Market");
+  const market = client.db("Market");
   const NYUSE = market.collection("NYUSE");
 
   const stocks: Array<Stock> = [];
