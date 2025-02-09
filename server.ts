@@ -82,6 +82,62 @@ const tickers = [
   "RAD",
 ];
 
+const boom_headlines = [
+  "Company Reports Record-Breaking Quarterly Earnings",
+  "Surge in Consumer Demand Drives Stock Price Higher",
+  "Major Partnership Announcement Sparks Investor Optimism",
+  "Company Expands into New Market, Shares Soar",
+  "Breakthrough Innovation Sends Stock Price Climbing",
+  "Unexpected Revenue Growth Exceeds Market Expectations",
+  "Stock Spikes Following Positive Analyst Ratings",
+  "Company Announces Strategic Acquisition, Shares Rally",
+  "New Product Launch Drives Increased Investor Confidence",
+  "Strong Industry Trends Fuel Stock Surge",
+  "Major Contract Win Boosts Company Valuation",
+  "Leadership Shakeup Leads to Renewed Market Optimism",
+  "Company Reports Higher-Than-Expected Profit Margins",
+  "Positive Economic Data Lifts Company’s Growth Prospects",
+  "New Regulatory Approval Opens Doors for Expansion",
+  "Strong Institutional Investment Drives Stock Price Up",
+  "Investor Sentiment Turns Bullish Amid Market Optimism",
+  "Company Announces Stock Buyback Plan, Shares Climb",
+  "Earnings Beat Forecasts, Stock Jumps in After-Hours Trading",
+  "Major Cost-Cutting Measures Improve Profit Outlook",
+  "New Strategic Partnerships Position Company for Growth",
+  "Surging Demand for Company’s Services Fuels Stock Rally",
+  "Market Momentum Pushes Stock to All-Time High",
+  "Expansion Into Emerging Markets Drives Investor Excitement",
+  "Company Outperforms Competitors, Gains Market Share",
+];
+
+const crash_headlines = [
+  "Markets Plummet as Economic Uncertainty Rattles Investors",
+  "Stock Market Sees Worst Drop in Years Amid Growing Fears",
+  "Panic Selling Sweeps Markets as Investors Flee Risky Assets",
+  "Economic Downturn Accelerates, Recession Fears Mount",
+  "Financial Sector in Turmoil as Liquidity Crisis Worsens",
+  "Central Banks Intervene Amid Widespread Market Collapse",
+  "Corporate Bankruptcies Surge as Debt Crisis Deepens",
+  "Consumer Spending Declines Sharply, Raising Recession Concerns",
+  "Housing Market Crash Sparks Broader Economic Meltdown",
+  "Global Supply Chain Disruptions Exacerbate Market Volatility",
+  "Mass Layoffs Announced as Businesses Struggle to Stay Afloat",
+  "Credit Markets Freeze, Threatening Global Financial Stability",
+  "Major Financial Institution Collapses, Sending Shockwaves Through Markets",
+  "Inflation Spirals Out of Control, Eroding Consumer Purchasing Power",
+  "Government Scrambles to Implement Emergency Economic Measures",
+  "Investor Confidence Plummets as Markets Face Extreme Volatility",
+  "Unemployment Rates Skyrocket as Companies Cut Costs",
+  "Debt Bubble Bursts, Triggering Widespread Financial Contagion",
+  "Currency Devaluation Sparks Inflationary Crisis",
+  "Interest Rate Hikes Trigger Sharp Decline in Borrowing and Spending",
+  "Stock Market in Freefall as Bear Market Takes Hold",
+  "Consumer Confidence Hits Record Lows Amid Economic Uncertainty",
+  "Major Hedge Fund Collapse Sends Ripple Effects Through Markets",
+  "Global Trade Slows as Economic Growth Grinds to a Halt",
+  "Government Bailouts Proposed to Prevent Total Economic Collapse",
+];
+
 tickers.forEach((name) => {
   const random_type = Math.random() * 7;
   let type;
@@ -95,8 +151,8 @@ tickers.forEach((name) => {
 
   const stock = createStock(name, {
     basePrice: Math.random() * 500,
-    volatility: Math.random() * 0.3,
-    drift: Math.random() * 0.02,
+    volatility: Math.random() * 0.25,
+    drift: Math.random() * 0.01,
     type: type,
   });
 
@@ -116,7 +172,8 @@ setInterval(() => {
     const ticker = Object.keys(stocks)[index];
     stocks[ticker] = simulateStockBoom(stocks[ticker]);
     news.push({
-      headline: "ABSOLUTE CINEMA!",
+      headline:
+        boom_headlines[Math.floor(Math.random() * boom_headlines.length)],
       stocks_affected: ticker,
     });
   } else if (random > 0.7) {
@@ -124,7 +181,8 @@ setInterval(() => {
       stocks[stock.name] = stock;
     });
     news.push({
-      headline: "We're cooked 💀💀💀",
+      headline:
+        crash_headlines[Math.floor(Math.random() * crash_headlines.length)],
       stocks_affected: "All",
     });
   }
