@@ -129,11 +129,21 @@ const tickers = [
 ];
 
 tickers.forEach((name) => {
+  const random_type = Math.random() * 7;
+  let type;
+  if (random_type > 6) {
+    type = StockType.Volatile;
+  } else if (random_type > 4) {
+    type = StockType.Growth;
+  } else {
+    type = StockType.Stable;
+  }
+
   const stock = createStock(name, {
     basePrice: Math.random() * 500,
     volatility: Math.random() * 0.3,
     drift: Math.random() * 0.02,
-    type: Math.floor(Math.random() * 3),
+    type: type,
   });
 
   stocks[name] = stock;
