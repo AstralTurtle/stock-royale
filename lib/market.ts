@@ -1,3 +1,5 @@
+import { StockPrices, StockConfig, StockType, Stock } from "../types/Stock";
+
 export function modifyStockPrice(
   previousClose: number,
   mu: number = 0.0005,

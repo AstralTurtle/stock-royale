@@ -4,10 +4,11 @@ import { createStock } from "./lib/market";
 import { Stock, StockType } from "./types/Stock";
 import tickers from "./stocks.json";
 import { WebSocketServer } from "ws";
-import { BuyRequest, Request, RequestType } from "./types/Request";
+import { BuyRequest, Request, RequestType, SellRequest } from "./types/Request";
 import { Response, ResponseType } from "./types/Response";
 import { UUID } from "mongodb";
 import { User } from "./lib/user";
+import { generateUsername } from "unique-username-generator";
 
 if (!process.env.MONGODB_URI) {
   throw new Error('Invalid/Missing environment variable: "MONGODB_URI"');
@@ -39,6 +40,24 @@ const wss = new WebSocketServer({ server });
 
 wss.on("connection", (ws: WebSocket) => {
   console.log("Client connected");
+
+  const user: User = {
+    uuid: new UUID(),
+    username: generateUsername("-"),
+    wins: 0,
+    cash: 10000,
+    portfolio: {},
+  };
+
+  const users = client.db("Users").collection("Users");
+  users.insertOne(user);
+
+  ws.send(
+    JSON.stringify({
+      message: "This is your UUID, please don't lose it!",
+      uuid: user.uuid,
+    })
+  );
 
   ws.onmessage = (message) => {
     console.log(`Received: ${message}`);
@@ -80,6 +99,33 @@ wss.on("connection", (ws: WebSocket) => {
         const response: Response = {
           type: ResponseType.Success,
           message: "You have purchased the shares.",
+        };
+        ws.send(JSON.stringify(response));
+        return;
+      }
+
+      if (data.type === RequestType.Sell) {
+        const stockTicker = (data as SellRequest).stock;
+        const stock = stocks[stockTicker];
+        const stockCurrent = stock.history[stock.history.length - 1].current;
+        const stockShares = (data as SellRequest).shares;
+        const totalGain = stockCurrent * stockShares;
+
+        if (user.portfolio[stockTicker] < stockShares) {
+          const response: Response = {
+            type: ResponseType.Failure,
+            message: "You don't own all those shares.",
+          };
+          ws.send(JSON.stringify(response));
+          return;
+        }
+
+        user.cash += totalGain;
+        user.portfolio[stockTicker] -= stockShares;
+
+        const response: Response = {
+          type: ResponseType.Success,
+          message: "You have sold the shares.",
         };
         ws.send(JSON.stringify(response));
         return;

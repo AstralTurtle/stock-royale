@@ -12,6 +12,7 @@
   "dependencies": {
     "express": "^4.21.2",
     "mongodb": "^6.13.0",
+    "unique-username-generator": "^1.4.0",
     "ws": "^8.18.0"
   },
   "devDependencies": {
